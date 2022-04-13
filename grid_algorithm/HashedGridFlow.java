@@ -5,6 +5,7 @@
  */
 package grid_algorithm;
 
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import project_utils.Triple;
@@ -179,6 +180,12 @@ public class HashedGridFlow {
         }
         return cl;
     }
+    public HashedGridFlow scale_inplace(double d) {
+        for(Entry<Integer, Double> t : this.entries.entrySet()){
+            t.setValue(t.getValue() * d);
+        }
+        return this;
+    }
     public static HashedGridFlow add(HashedGridFlow a, HashedGridFlow b) {
         HashedGridFlow cl = new HashedGridFlow(a, true);
 //        for(Entry<Integer, Double> t : a.entries.entrySet()){
@@ -216,5 +223,32 @@ public class HashedGridFlow {
             s += "\t"+i.toString()+" :   "+t.getValue()+"\n";
         }
         return s + "]";
+    }
+    
+    public String tikz2D(){
+        String s = "";
+        //String s = "\\begin{tikzpicture}\n";
+        //String s = "\\node (anchor) {};\n";
+        DecimalFormat df = new DecimalFormat("#.000");
+        for(int i = 0; i < getN(); i++){
+            double scale = 2;
+            s += "\\node[roundnode, minimum size = 1cm] at ("+scale*g.toPosition(i)[0]+", "+scale*g.toPosition(i)[1]+") ("+i+") {\\textcolor{black}{"+i+"}};\n";
+        }
+        for (int i = 0; i < getN(); i++) {
+            int[][] neighbours = g.getNeighbours(g.toPosition(i));
+            for(int[] n : neighbours){
+                int indexTo = g.toIndex(n);
+                if(indexTo > i){
+                    String number = (this.get(i, indexTo) == 0.0) ? "\\textcolor{blue!28}{0}" : df.format(this.get(i, indexTo));
+                    if(indexTo == i + 1)
+                        s += "\\draw[thick, ->] ("+i+") -- ("+indexTo+") node[midway,right] {"+number+"};\n";
+                    else
+                        s += "\\draw[thick, ->] ("+i+") -- ("+indexTo+") node[midway,above] {"+number+"};\n";
+                }
+            }
+            
+        }
+        //s += "\\end{tikzpicture}";
+        return s;
     }
 }

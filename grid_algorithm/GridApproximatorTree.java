@@ -5,7 +5,12 @@
  */
 package grid_algorithm;
 
+import java.awt.Color;
+import java.text.DecimalFormat;
 import java.util.Arrays;
+
+import org.scilab.forge.jlatexmath.TeXConstants;
+import org.scilab.forge.jlatexmath.TeXFormula;
 
 /**
  *
@@ -27,7 +32,8 @@ public class GridApproximatorTree {
         this.g = g;
     }
     public double getAlpha(){
-        return Math.log(g.getN())/Math.log(2);
+//        return Math.log(g.getN())/Math.log(2);
+return 50.;
 //        return Math.log(g.getN());
     }
     
@@ -230,6 +236,40 @@ public class GridApproximatorTree {
             }
             return max;
         }
+
+        int height(){
+            if(isLeaf()) return 0;
+            int max = 0;
+            for(Node n : children){
+                if(n.height() > max) max = n.height();
+            }
+            return 1 + max;
+        }
+        
+        private String tikz2D(double xpos) {
+            int yscale = 4;
+            int ypos = yscale*height();
+            DecimalFormat df = new DecimalFormat("#.0000");
+            DecimalFormat gf = new DecimalFormat("#0.##E0");
+//            int xpos = T.g.volume(lowerIndices, higherIndices)/2;
+//            xpos += T.g.toIndex(lowerIndices);
+            String s = "";
+            String ns = isLeaf() ? ""+T.g.toIndex(lowerIndices) : "";
+            s += "\\node[roundnode, minimum size = 0.9cm] at ("+(xpos+T.g.volume(lowerIndices, higherIndices)/2.)+", "+ypos+") ("+((int)xpos)+"h"+ypos+") {"+ns+"};\n";
+            if(!isLeaf()){
+                double sum = xpos;
+                for(Node n : children){
+                    String col = (n.current_excess_flow == 0.) ? "black!20" : "black";
+                    String colGrad = (n.current_edge_grad == 0.) ? "red!20" : "red";
+                    String colEdge = (n.current_excess_flow == 0.) ? "black!20" : "blue!40";
+                    s += n.tikz2D(sum + T.g.volume(n.lowerIndices, n.higherIndices)/2.);
+                    s += String.format("\\draw[thick, ->, color=%s] (",colEdge)+(int)xpos+"h"+ypos+") -- ("+((int)(sum + T.g.volume(n.lowerIndices, n.higherIndices)/2.))+"h"+(yscale*n.height())+")"
+                            + String.format(" node[sloped,midway,above=-0.1cm] {\\textcolor{%s}{%s/%d}, \\textcolor{%s}{%s}}", col, df.format(n.current_excess_flow), n.capacity_cut, colGrad, gf.format(n.current_edge_grad)) + ";\n";
+                    sum += T.g.volume(n.lowerIndices, n.higherIndices);
+                }
+            }
+            return s;
+        }
     }
 
     @Override
@@ -269,6 +309,21 @@ public class GridApproximatorTree {
     
     public double linf_congestion(){
         return root.linf_congestion();
+    }
+    
+    public String tikz2D(){
+        return root.tikz2D(0);
+    }
+    
+    public void createPNG(){
+//        TeXFormula lat = new TeXFormula(); // this line alone leads to errors.
+//        getClass().getClassLoader().getResourceAsStream("PNGs/");
+//        getClass().getClassLoader().getResourceAsStream("PNGs\\");
+//        String firstLine = "\\hspace{-4cm}";
+//        firstLine += String.format("\\begin{tikzpicture}[roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm}, scale=%1.1f]", 1.2*(g.getN()));
+//        String lastLine = "\\end{tikzpicture}";
+//        TeXFormula formula = new TeXFormula(firstLine + tikz2D() + lastLine);
+//        formula.createPNG(TeXConstants.STYLE_DISPLAY, 100, "PNGs/Tree-"+System.currentTimeMillis(), Color.white, Color.black);
     }
     
 }

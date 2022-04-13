@@ -250,6 +250,25 @@ public class GridGraph /*implements RoutingGraph*/ {
         }
         return true;
     }
+    
+    public String tikz2D(){
+        String s = "";
+        //String s = "\\begin{tikzpicture}\n";
+        //String s = "\\node (anchor) {};\n";
+        for(int i = 0; i < getN(); i++){
+            double scale = 2;
+            s += "\\node[roundnode, minimum size = 1cm] at ("+scale*toPosition(i)[0]+", "+scale*toPosition(i)[1]+") ("+i+") {\\textcolor{black}{"+i+"}};\n";
+            int[][] neighbours = getNeighbours(toPosition(i));
+            for(int[] n : neighbours){
+                int indexTo = toIndex(n);
+                if(indexTo < i){
+                    s += "\\draw ("+i+") -- ("+indexTo+");\n";
+                }
+            }
+        }
+        //s += "\\end{tikzpicture}";
+        return s;
+    }
 //    public double getAlpha(){
 //        return getN();
 //    }

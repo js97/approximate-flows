@@ -5,6 +5,7 @@
  */
 package grid_algorithm;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,7 +58,8 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
             //entries.set((int)at, entries.get((int)at) + value);
             entries[(int)at] += value;
         } else {
-            set(at, value);
+            entries[(int)at] += value;
+            entryIndices.add(at);
         }
     }
     public double get(Integer at){
@@ -137,6 +139,12 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         }
         return d;
     }
+    public GridDemand scale_inplace(double s) {
+        for(Integer i : this.entryIndices){
+            this.entries[i] *= s;
+        }
+        return this;
+    }
     
 //    @Deprecated
 //    public GridFlow toPotentialDiffEdgesFlow(){
@@ -158,7 +166,8 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
             for(int k = 0; k < neighbours.length; k++){
                 int other = g.toIndex(neighbours[k]);
                 double dif = this.get(i) - this.get(other);
-                f.set(i, other, dif);
+                if(i < other)
+                    f.set(i, other, -dif);
             }
         }
         return f;
@@ -167,6 +176,19 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
     @Override
     public String toString() {
         return Arrays.toString(this.entries);
+    }
+    
+    public String tikz2D(){
+        String s = "";
+        DecimalFormat df = new DecimalFormat("#.000");
+        //String s = "\\begin{tikzpicture}\n";
+        //String s = "\\node (anchor) {};\n";
+        for(int i = 0; i < this.g.getN(); i++){
+            double scale = 3;
+            s += "\\node[roundnode, minimum size = 2cm] at ("+scale*g.toPosition(i)[0]+", "+scale*g.toPosition(i)[1]+") {\\textcolor{blue!28}{"+i+":} "+(get(i) == 0.0 ? "0" : "\\textcolor{red}{"+df.format(get(i))+"}")+"};\n";
+        }
+        //s += "\\end{tikzpicture}";
+        return s;
     }
     
     
