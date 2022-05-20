@@ -28,6 +28,14 @@ public class GridGraph /*implements RoutingGraph*/ {
         }
         return prod;
     }
+    public int getM(){
+        int sum = 0;
+        int n = getN();
+        for(int i : nodesPerDim){
+            sum += (n/i)*(i-1);
+        }
+        return sum;
+    }
     // todo: make more efficient 1d-index variant, which might also reduce
     // loop complexities to theta(d) instead theta(d^2) through index calculations
     // Tested

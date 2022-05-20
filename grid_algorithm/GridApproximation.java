@@ -5,7 +5,14 @@
  */
 package grid_algorithm;
 
+import com.opencsv.CSVWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import project_utils.DoubleSequence;
 import project_utils.Tuple;
 
 /**
@@ -16,7 +23,42 @@ public class GridApproximation {
     GridGraph g;
     GridApproximatorTree t;
     double currentScale = 1.;
+    
+    DoubleSequence stepSize = DoubleSequence.one;
+    
     public GridApproximation(GridGraph g){
+        // debug stuff
+        debug_csv : {
+            String subfolder = "";
+            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
+            try {
+                this.writer = new CSVWriter(new FileWriter(path + subfolder + "deltas.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
+                writer.writeNext(new String[]{"delta"});
+                this.iterationWriter = new CSVWriter(new FileWriter(path + subfolder + "potentials.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
+                // <editor-fold defaultstate="collapsed" desc="Some code">
+                iterationWriter.writeNext(new String[]{"potential", "current scale", String.format("edgeflow-%d-%d",4,8), "edgeflow-rescaled"});
+                // </editor-fold>
+            } catch (IOException ex) {
+                Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        this.g = g;
+        this.t = new GridApproximatorTree(g);
+    }
+    public GridApproximation(GridGraph g, String input_identifier){
+        // debug stuff
+        debug_csv : {
+            String subfolder = "";
+            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
+            try {
+                this.writer = new CSVWriter(new FileWriter(path + subfolder + input_identifier + "_deltas.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
+                writer.writeNext(new String[]{"delta"});
+                this.iterationWriter = new CSVWriter(new FileWriter(path + subfolder + input_identifier + "_potentials.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
+                iterationWriter.writeNext(new String[]{"potential", "current scale", String.format("edgeflow-%d-%d",4,8), "edgeflow-rescaled"});
+            } catch (IOException ex) {
+                Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         this.g = g;
         this.t = new GridApproximatorTree(g);
     }
@@ -24,9 +66,17 @@ public class GridApproximation {
     boolean printTikz = true;
     boolean printToString = false;
     int iterationLimit = 515;
+    // debug purpose
+    CSVWriter writer, iterationWriter;
+    
+    public Tuple<HashedGridFlow, HashedGridFlow> AlmostRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
+        t.alpha = alpha;
+        stepSize = h;
+        return AlmostRoute(b, eps);
+    }
     
     // just to record how many iterations have been made
-    private int iterations = 0;
+    int iterations = 0;
     public Tuple<HashedGridFlow, HashedGridFlow> AlmostRoute(GridDemand b, double eps){
         // initialization
         t.updateExcessFlows(b);
@@ -45,37 +95,75 @@ public class GridApproximation {
             iter_result = iteration(currentFlow, b, eps);
             // [bullet 2] delta calculation
             delta = iter_result.b.l1();
-            System.out.println("Current scale: "+this.currentScale);
+//            System.out.println("Current scale: "+this.currentScale);
             // [bullet 3] update flow approximation
             if(delta >= eps/4){
+                double val = (-1)*(delta/(1+4*t.getAlpha()*t.getAlpha()));
+                // scale step with stepSize (experimental):
+                val *= stepSize.at(iterations);
                 for(Entry<Integer, Double> e : iter_result.b.entries.entrySet()){
                     // capacity is 1 for all edges here
-                    double val = (-1)*(delta/(1+4*t.getAlpha()*t.getAlpha()))*Math.signum(e.getValue());
 //                    double val = -(delta/(1+4*t.getAlpha()*t.getAlpha()))*e.getValue();
-                    currentFlow.add(e.getKey(), val);
+                    currentFlow.add(e.getKey(), val * Math.signum(e.getValue()));
                 }
             }
             // just for information
             iterations++;
+//            System.out.println(String.format("Delta = %f", delta));
+            debug_csv : {
+                writer.writeNext(new String[]{""+delta});
+            }
             // loop = "repeat" (halting condition = [bullet 4])
         } while (delta >= eps/4 && iterations < iterationLimit);
         // return
         iter_result.a = iter_result.a.scale(1./currentScale);
         iter_result.b = iter_result.b.scale(1./currentScale);
-debug : {
-    System.out.println("Scaled Demand:\\\\");
-    boolean tmp = printTikz;
-    printTikz = true;
-    printDemand(b);
-    double sdb = 1./currentScale;
-    b = b.scale(sdb);
-    System.out.println(String.format("Re-scaled Demand with total scale %f:\\\\", currentScale));
-    printDemand(b);
-    printTikz = tmp;
-}
+//debug : {
+//    System.out.println("Scaled Demand:\\\\");
+//    boolean tmp = printTikz;
+//    printTikz = true;
+//    printDemand(b);
+//    double sdb = 1./currentScale;
+//    b = b.scale(sdb);
+//    System.out.println(String.format("Re-scaled Demand with total scale %f:\\\\", currentScale));
+//    printDemand(b);
+//    printTikz = tmp;
+//}
         System.out.println("Total scaling: "+currentScale);
         System.out.println("Stopped at iteration "+iterations);
+        
+        debug_csv : {
+            try {
+                writer.flush();
+                iterationWriter.flush();
+            } catch (IOException ex) {
+                Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
         return iter_result;
+    }
+    
+    public HashedGridFlow CompleteRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
+        t.alpha = alpha;
+        stepSize = h;
+        return CompleteRoute(b, eps);
+    }
+    public HashedGridFlow CompleteRoute(GridDemand b, double eps){
+        // first route: AlmostRoute
+        Tuple<HashedGridFlow, HashedGridFlow> f0_ = AlmostRoute(b, eps);
+        int m = g.getM();
+        int T = (int)Math.log(2*m);
+        GridDemand bi = b;
+        HashedGridFlow fi = f0_.a;
+        for(int i = 1; i <= T; i++){
+            // consecutive routings: AlmostRoute with residual and eps=0.5
+            bi = GridDemand.subtract(bi, fi.calculateExcessFlows());
+            Tuple<HashedGridFlow, HashedGridFlow> fi_ = AlmostRoute(bi, 0.5);
+            fi = fi_.a;
+        }
+        //TODO: Spanning Tree routing
+        return fi;
     }
     
     
@@ -83,9 +171,9 @@ debug : {
     // and the calculation of potential and potential gradient of f (to be used for other bullet points)
     private Tuple<HashedGridFlow, HashedGridFlow> iteration(HashedGridFlow currentFlow, GridDemand demand, double eps){
         double pot = potential(currentFlow, demand);
-        System.out.println("Pot @ "+iterations+" :   "+pot);
+//        System.out.println("Pot @ "+iterations+" :   "+pot);
         double locScale = 1.;
-        System.out.println(String.format("Comparing %f with %f...",pot,16*(1./eps)*Math.log(g.getN())));
+//        System.out.println(String.format("Comparing %f with %f...",pot,16*(1./eps)*Math.log(g.getN())));
         while(pot < 16*(1./eps)*Math.log(g.getN())){
             // inplace scaling since caller method relies on referred objects
             currentFlow = currentFlow.scale_inplace(17./16);
@@ -94,11 +182,16 @@ debug : {
             locScale *= 17./16;
             pot = potential(currentFlow, demand);
         }
-        System.out.println("Scaled Potential: "+pot);
-        System.out.println("         > Graph: "+cpg);
-        System.out.println("         >  Tree: "+cpt);
-        System.out.println("     >  Local Scale: "+locScale);
-        System.out.println("     >  Total Scale: "+currentScale);
+        debug_csv : {
+            double edgeFlow = currentFlow.get(4, 8);
+            double edgeFlowRescaled = edgeFlow / currentScale;
+            iterationWriter.writeNext(new String[]{""+pot, ""+currentScale, ""+edgeFlow, ""+edgeFlowRescaled});
+        }
+//        System.out.println("Scaled Potential: "+pot);
+//        System.out.println("         > Graph: "+cpg);
+//        System.out.println("         >  Tree: "+cpt);
+//        System.out.println("     >  Local Scale: "+locScale);
+//        System.out.println("     >  Total Scale: "+currentScale);
         // GridFlow grad_pot = new GridFlow(g);
         HashedGridFlow grad_potential = grad_potential(currentFlow, demand);
 //        System.out.println("Current Flow: ");

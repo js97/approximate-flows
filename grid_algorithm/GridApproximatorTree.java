@@ -21,6 +21,8 @@ public class GridApproximatorTree {
     GridGraph g;
     int m;
     
+    double alpha = 10.;
+    
     public GridApproximatorTree(GridGraph g){
         int[] lower = new int[g.getDim()], higher = new int[g.getDim()];
         for(int i = 0; i < g.getDim(); i++){
@@ -33,7 +35,8 @@ public class GridApproximatorTree {
     }
     public double getAlpha(){
 //        return Math.log(g.getN())/Math.log(2);
-return 50.;
+//        return 50.;
+        return alpha;
 //        return Math.log(g.getN());
     }
     
