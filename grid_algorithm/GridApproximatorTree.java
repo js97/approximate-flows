@@ -112,6 +112,15 @@ public class GridApproximatorTree {
             return this.capacity_cut == 0;
         }
         
+        /**
+         * Sets the leaves to the given excess flows b and calculates the
+         * excess flows of higher-level parts of the graph, that is, the inner
+         * nodes of this tree structure.
+         * The congestion approximation at a node v, (Rb)_v, directly can be read via 
+         * v.current_excess_flow/v.capacity_cut.
+         * @param b
+         * @return 
+         */
         public double updateExcessFlows(GridDemand b){
             if(isLeaf()){
                 // int index = T.g.toIndex(lowerIndices);
@@ -125,6 +134,16 @@ public class GridApproximatorTree {
             }
             return this.current_excess_flow;
         }
+        /**
+         * Calculates exp(lmax(2 alpha * R b)) for the parts of R and b in this sub-tree.
+         * The concrete calculation is sum(exp((2 alpha * Rb)_i)+exp(-(2 alpha * Rb)_i)).
+         * Set b via updateExcessFlows(b).
+         * The exponent level is kept to optimize calculation efficiency.
+         * To get lmax(2 alpha * R b), simply pipe this result in Math.log or
+         * use the lmax_2alpha_congestion() or lmax_shifted_2alpha_congestion()
+         * methods of the whole tree data structure.
+         * @return 
+         */
         public double lmax_exp_2alpha_congestion(){
             double sum = 0;
             if(!isRoot()){
@@ -140,6 +159,12 @@ public class GridApproximatorTree {
             }
             return sum;
         }
+        /**
+         * Same as lmax_exp_2alpha_congestion, but with a shift to avoid numeric instability.
+         * Actual calculation is sum(exp((2 alpha * Rb)_i + shift)+exp(-(2 alpha * Rb)_i) + shift).
+         * @param shift
+         * @return 
+         */
         public double lmax_exp_shifted_2alpha_congestion(double shift){
             double sum = 0;
             if(!isRoot()){
@@ -203,6 +228,20 @@ public class GridApproximatorTree {
                 }
             }
         }
+        public void add_edge_gradients_to_incident_node_excesses_v2(GridDemand d){
+            if(!isRoot()){
+                int[] indices = T.g.indicesOfBoxNodes(lowerIndices, higherIndices);
+//                System.out.println(String.format("Adding %f/%d to indices %s", current_edge_grad, capacity_cut, Arrays.toString(indices)));
+                for(int i : indices){
+                    d.add(i, current_edge_grad/this.capacity_cut);
+                }
+            }
+            if(!isLeaf()){
+                for(Node n : children){
+                    n.add_edge_gradients_to_incident_node_excesses_v2(d);
+                }
+            }
+        }
         
         @Override
         public String toString() {
@@ -238,6 +277,36 @@ public class GridApproximatorTree {
                 }
             }
             return max;
+        }
+        double org_demand;
+        @Deprecated
+        /**
+         * Not implemented yet.
+         */
+        double demand_bound() {
+            double pot = 0.;
+            double orgdem = 0.;
+            if(isLeaf()) return pot * orgdem;
+            double sum = 0;
+            for(Node n : children){
+                sum += n.demand_bound();
+            }
+            return sum;
+        }
+        /**
+         * Debug Purpose.
+         * @param b 
+         */
+        void set_orgdemand(GridDemand b){
+            if(isLeaf()){
+                // int index = T.g.toIndex(lowerIndices);
+                this.org_demand = b.get(lowerIndices);
+                return;
+            } else {
+                for(Node n : children){
+                    n.set_orgdemand(b);
+                }
+            }
         }
 
         int height(){
@@ -303,11 +372,31 @@ public class GridApproximatorTree {
     }
     public GridDemand mult_Rt_edge_gradient(){
         GridDemand d = new GridDemand(this.g);
-        root.add_edge_gradients_to_incident_node_excesses(d);
+//        root.add_edge_gradients_to_incident_node_excesses(d);
+        root.add_edge_gradients_to_incident_node_excesses_v2(d);
         return d;
     }
     public double getDefaultShift(){
+//        System.out.println("Calculating shift... tree:\n"+this.tikz2D());
+//        System.out.println("Shift will be "+(-2*getAlpha()*linf_congestion()));
         return -2*getAlpha()*linf_congestion();
+//        return -linf_congestion();
+    }
+    
+    /**
+     * Make sure that (b-Bf) is routed in gradient, not b!
+     * @param b Since b is not explicitly required for calculating maxflows, but
+     * required for calculating this useful metric, it is requested as input.
+     * @return 
+     */
+    public double compute_lemma_congestion(GridDemand b){
+        GridDemand v = mult_Rt_edge_gradient();
+        double z = GridDemand.scalar_prod(b, v);
+        double n = v.toPotentialDiffEdgesFlow().l1();
+        return z/n;
+    }
+    public double compute_lemma_congestion_upper(double lemma_congestion, double eps){
+        return (1+eps)*lemma_congestion;
     }
     
     public double linf_congestion(){
@@ -315,7 +404,10 @@ public class GridApproximatorTree {
     }
     
     public String tikz2D(){
-        return root.tikz2D(0);
+        String prefix = "\\begin{tikzpicture}[roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm}, scale=1.2]\n";
+        prefix += "\\hspace{-4cm}\n";
+        String suffix = "\\end{tikzpicture}";
+        return prefix+root.tikz2D(0)+suffix;
     }
     
     public void createPNG(){

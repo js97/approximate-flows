@@ -117,13 +117,19 @@ public class HashedGridFlow {
     public double lmax_exp_shifted(double shift){
         double sum_exps = 0;
         int nonzeros = 0;
+//        System.out.println("lmax_exp_shifted: ");
         for(Entry<Integer, Double> e : entries.entrySet()){
             double exp = Math.exp(e.getValue() + shift) + Math.exp((-e.getValue()) + shift);
             sum_exps += exp;
             nonzeros++;
+//            System.out.println("    edge value: "+e.getValue());
         }
+//        System.out.println("  shift is "+shift);
+//        System.out.println("  sum_exps is "+sum_exps);
         double exp_shift = Math.exp(shift);
+//        System.out.println("  exp_shift is "+exp_shift);
         sum_exps += 2 * exp_shift * (m - nonzeros);
+//        System.out.println("  there are "+nonzeros+" nonzeros and "+(m-nonzeros)+" zeros.");
         return sum_exps;
     }
     public double lmax(){
@@ -149,13 +155,20 @@ public class HashedGridFlow {
         return f;
     }
     public HashedGridFlow gradient_lmax_shifted(double shift){
+//        System.out.println("Calculating gradient with shift "+shift);
         double sum_exps = lmax_exp_shifted(shift);
+//        System.out.println("sum_exps is "+sum_exps);
+//        System.out.println("Maximal entry is "+this.linf());
         HashedGridFlow f = new HashedGridFlow(this, false);
         for(Entry<Integer, Double> t : this.entries.entrySet()){
             double exp1 = Math.exp(t.getValue() + shift);
             double exp2 = Math.exp(-t.getValue() + shift);
             f.set(t.getKey(), (exp1 - exp2) / sum_exps);
+//            System.out.println("exponent: "+t.getValue());
+//            System.out.println("exp1: "+exp1);
+//            System.out.println("exp2: "+exp2);
         }
+//        System.out.println("Gradient l1 is "+f.l1()+" and linf is "+f.linf());
         return f;
     }
     double getDefaultShift(){
@@ -226,8 +239,8 @@ public class HashedGridFlow {
     }
     
     public String tikz2D(){
-        String s = "";
-        //String s = "\\begin{tikzpicture}\n";
+//        String s = "";
+        String s = "\\begin{tikzpicture}[roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm}, scale=1.2]\n";
         //String s = "\\node (anchor) {};\n";
         DecimalFormat df = new DecimalFormat("#.000");
         for(int i = 0; i < getN(); i++){
@@ -248,7 +261,7 @@ public class HashedGridFlow {
             }
             
         }
-        //s += "\\end{tikzpicture}";
+        s += "\\end{tikzpicture}";
         return s;
     }
 }

@@ -111,6 +111,23 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         return Math.log(lmax_exp());
     }
     
+    public double l1(){
+        double sum = 0;
+        for(Integer e : entryIndices){
+            double val = Math.abs(entries[(int)e]);
+            sum += val;
+        }
+        return sum;
+    }
+    public double linf(){
+        double max = 0;
+        for(Integer e : entryIndices){
+            double val = Math.abs(entries[(int)e]);
+            if(val > max) max = val;
+        }
+        return max;
+    }
+    
     public static GridDemand subtract(GridDemand a, GridDemand b){
         GridDemand res = new GridDemand(a.g);
         for(Tuple<Integer, Double> e : a){
@@ -146,6 +163,14 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         return this;
     }
     
+    public static double scalar_prod(GridDemand a, GridDemand b){
+        double sum = 0.;
+        for(Integer i : a.entryIndices){
+            sum += a.entries[i] * b.entries[i];
+        }
+        return sum;
+    }
+    
 //    @Deprecated
 //    public GridFlow toPotentialDiffEdgesFlow(){
 //        GridFlow f = new GridFlow(g);
@@ -165,9 +190,15 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
             int[][] neighbours = g.getNeighbours(g.toPosition(i));
             for(int k = 0; k < neighbours.length; k++){
                 int other = g.toIndex(neighbours[k]);
-                double dif = this.get(i) - this.get(other);
-                if(i < other)
+                if(i < other){
+                    double dif = this.get(i) - this.get(other);
                     f.set(i, other, -dif);
+//                    if(dif != 0) {
+//                        System.out.println("B^T: Setting "+i+" -> "+other+" to "+dif);
+//                        System.out.println("  Other: "+get(other));
+//                        System.out.println("  i: "+get(i));
+//                    }
+                }
             }
         }
         return f;
@@ -179,15 +210,15 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
     }
     
     public String tikz2D(){
-        String s = "";
+//        String s = "";
         DecimalFormat df = new DecimalFormat("#.000");
-        //String s = "\\begin{tikzpicture}\n";
+        String s = "\\begin{tikzpicture}[roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm}, scale=1.2]\n";
         //String s = "\\node (anchor) {};\n";
         for(int i = 0; i < this.g.getN(); i++){
             double scale = 3;
             s += "\\node[roundnode, minimum size = 2cm] at ("+scale*g.toPosition(i)[0]+", "+scale*g.toPosition(i)[1]+") {\\textcolor{blue!28}{"+i+":} "+(get(i) == 0.0 ? "0" : "\\textcolor{red}{"+df.format(get(i))+"}")+"};\n";
         }
-        //s += "\\end{tikzpicture}";
+        s += "\\end{tikzpicture}";
         return s;
     }
     
