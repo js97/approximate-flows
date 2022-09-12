@@ -96,35 +96,38 @@ public class GridApproximation {
     FileWriter fw;
     boolean writeToFile = false;
     
-    public Tuple<HashedGridFlow, HashedGridFlow> AlmostRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
+    public Tuple<GridFlow, GridFlow> AlmostRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
         t.alpha = alpha;
         stepSize = h;
         return AlmostRoute(b, eps);
     }
     
+    // dynamic search for optimal scaling
+    boolean dynamic_opt_stepsize = true;
+    double dynamic_opt_stepsize_precision = 0.001;
     // just to record how many iterations have been made
     int iterations = 0;
-    public Tuple<HashedGridFlow, HashedGridFlow> AlmostRoute(GridDemand b, double eps){
+    public Tuple<GridFlow, GridFlow> AlmostRoute(GridDemand b, double eps){
         // initialization
         t.updateExcessFlows(b);
         double linf = t.linf_congestion();
         double s = ((16/eps)*Math.log(g.getN()))/(2*t.getAlpha()*linf);
-//        b = b.scale(s);
-//        currentScale = s;
-        try {
-            fw.write(String.format("16/eps: %f\n",(16/eps)));
-            fw.write(String.format("log(n): %f\n", Math.log(g.getN())));
-            fw.write(String.format("linf: %f\n",linf));
-            fw.write(String.format("2alpha * linf: %f\n", (2*t.getAlpha()*linf)));
-            fw.write(String.format("Term 1: %f",((16/eps)*Math.log(g.getN()))));
-            fw.write(String.format("Term 2: %f\n", (2*t.getAlpha()*linf)));
-            fw.write(String.format("Total: %f\n", ((16/eps)*Math.log(g.getN()))/(2*t.getAlpha()*linf)));
-            fw.write(String.format("Starting scale: %f\n",s));
-        } catch (IOException ex) {
-            Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        HashedGridFlow currentFlow = new HashedGridFlow(g);
-        Tuple<HashedGridFlow, HashedGridFlow> iter_result;
+        b = b.scale(s);
+        currentScale = s;
+//        try {
+//            fw.write(String.format("16/eps: %f\n",(16/eps)));
+//            fw.write(String.format("log(n): %f\n", Math.log(g.getN())));
+//            fw.write(String.format("linf: %f\n",linf));
+//            fw.write(String.format("2alpha * linf: %f\n", (2*t.getAlpha()*linf)));
+//            fw.write(String.format("Term 1: %f",((16/eps)*Math.log(g.getN()))));
+//            fw.write(String.format("Term 2: %f\n", (2*t.getAlpha()*linf)));
+//            fw.write(String.format("Total: %f\n", ((16/eps)*Math.log(g.getN()))/(2*t.getAlpha()*linf)));
+//            fw.write(String.format("Starting scale: %f\n",s));
+//        } catch (IOException ex) {
+//            Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+        GridFlow currentFlow = new GridFlow(g);
+        Tuple<GridFlow, GridFlow> iter_result;
         double delta;
         // iteration
         do{
@@ -139,7 +142,10 @@ public class GridApproximation {
             if(delta >= eps/4){
                 double val = (-1)*(delta/(1+4*t.getAlpha()*t.getAlpha()));
                 // scale step with stepSize (experimental):
-                val *= stepSize.at(iterations);
+                if(dynamic_opt_stepsize)
+                    val *= optimize_stepsize(iter_result.a, iter_result.b, val, b, dynamic_opt_stepsize_precision);
+                else
+                    val *= stepSize.at(iterations);
                 for(Entry<Integer, Double> e : iter_result.b.entries.entrySet()){
                     // capacity is 1 for all edges here
 //                    double val = -(delta/(1+4*t.getAlpha()*t.getAlpha()))*e.getValue();
@@ -175,9 +181,9 @@ public class GridApproximation {
 //                    Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
 //                }
             }
-            System.out.println("Iteration "+iterations+" finished.");
-            System.out.println("  Current Scale: "+currentScale);
-            System.out.println("  Current Delta: "+delta);
+//            System.out.println("Iteration "+iterations+" finished.");
+//            System.out.println("  Current Scale: "+currentScale);
+//            System.out.println("  Current Delta: "+delta);
 //            System.out.println("  Current Gradient:\n"+iter_result.b.tikz2D());
         } while (delta >= eps/4 && iterations < iterationLimit);
         // return
@@ -219,34 +225,167 @@ public class GridApproximation {
         
         return iter_result;
     }
+    boolean golden_section_search = true;
+    double optimize_stepsize(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision){
+        double grow = 2.;
+        // Initial search for interval with exponential grow
+        double factor0 = 0.25;
+        double factor1 = factor0 * grow;
+        double factor2 = factor1 * grow;
+        double pot0 = potential(flow_f_plus_h_gradsignum(flow, factor0*std, gradient), demand);
+        double pot1 = potential(flow_f_plus_h_gradsignum(flow, factor1*std, gradient), demand);
+        double pot2 = potential(flow_f_plus_h_gradsignum(flow, factor2*std, gradient), demand);
+//        String pots_str = "Interval search: ("+factor0+", "+pot0+") - ("
+//                + factor1+", "+pot1+")"+
+//                + factor2+", "+pot2+")";
+        while(pot1 > pot2){
+            factor0 = factor1;
+            factor1 = factor2;
+            factor2 *= grow;
+            pot0 = pot1;
+            pot1 = pot2;
+            pot2 = potential(flow_f_plus_h_gradsignum(flow, factor2*std, gradient), demand);
+//            pots_str += " - ("+factor2+", "+pot2+")";
+        }
+        
+        
+        
+        double approx_min = golden_section_search ? 
+                optimize_stepsize_gss(flow, gradient, std, demand, precision, factor0, factor2) :
+                optimize_stepsize_p4(flow, gradient, std, demand, precision, factor0, factor2);
+//        System.out.println("Optimization step at iteration "+iterations+" with val="+std);
+//        System.out.println(pots_str);
+//        System.out.println(String.format("scale [%f, %f, %f, %f]",fi0,fi1,fi2,fi3));
+//        System.out.println(String.format("pots [%f, %f, %f, %f]",poti0,poti1,poti2,poti3));
+        return approx_min;
+    }
     
-    public HashedGridFlow CompleteRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
+    double optimize_stepsize_p4(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision, double a, double b/*, double ya, double yb*/){
+        // Refined minimum search by subsequent interval trisection
+        double fi0 = a;
+        double fi1 = a + (1/3.)*(b - a);
+//        double fi1 = factor1;
+        double fi2 = a + (2/3.)*(b - a);
+        double fi3 = b;
+//        double poti0 = pot0;
+//        double poti1 = potential(flow_f_plus_h_grad(flow, fi1*std, gradient), demand);
+//        double poti1 = pot1;
+        double poti1 = potential(flow_f_plus_h_gradsignum(flow, fi1*std, gradient), demand);
+        double poti2 = potential(flow_f_plus_h_gradsignum(flow, fi2*std, gradient), demand);
+//        double poti3 = pot2;
+        // order: fi0 < fi1 < fi2 < fi3
+        while(Math.abs(poti2 - poti1) > Math.abs(precision * poti1)){
+            if(poti2 > poti1){
+                // minimum not at fi2, hence also not at [fi2, fi3]
+                // set interval to [fi0, fi2]
+                fi3 = fi2;
+//                poti3 = poti2;
+            } else {
+                // minimum not at fi1, hence also not at [fi0, fi1]
+                // set interval to [fi1, fi3]
+                fi0 = fi1;
+//                poti0 = poti1;
+            }
+            // subdivide: same formulae for both cases
+            fi1 = fi0 + (1/3.)*(fi3 - fi0);
+            fi2 = fi0 + (2/3.)*(fi3 - fi0);
+            poti1 = potential(flow_f_plus_h_gradsignum(flow, fi1*std, gradient), demand);
+            poti2 = potential(flow_f_plus_h_gradsignum(flow, fi2*std, gradient), demand);
+        }
+        return poti1 < poti2 ? fi1 : fi2;
+    }
+    double optimize_stepsize_gss(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision, double a, double b/*, double ya, double yb*/){
+        double h = b - a;
+        double sq5 = Math.sqrt(5);
+//        double gs = (1+sq5)/2;
+//        double inv_gs = gs-1;
+        double inv_gs = (sq5-1)/2;
+        double inv_gs2 = (3 - sq5)/2;
+        
+        // search interval is [a,b]
+        double x0 = a;
+        double x3 = b;
+//        double y0 = ya;
+//        double y3 = yb;
+        // for |I_(i+1)|=(1/gs)*|I_i|, we set:
+        double x1 = x0 + inv_gs2 * h; // = x3 - inv_gs * h
+        double x2 = x0 + inv_gs * h;
+        double y1 = potential(flow_f_plus_h_gradsignum(flow, x1*std, gradient),demand);
+        double y2 = potential(flow_f_plus_h_gradsignum(flow, x2*std, gradient),demand);
+        
+        while(Math.abs(y2-y1) > Math.abs(precision * y1)){
+            if(y2 > y1){
+                // minimum not in [x2, x3]
+                // shrink to interval [x0, x2]
+                x3 = x2;
+//                y3 = y2;
+                // can reuse point x1 as new x2 (golden section)
+                x2 = x1;
+                y2 = y1;
+                // update interval size
+                h = x3 - x0;
+                // update point x1
+                x1 = x0 + inv_gs2 * h;
+                y1 = potential(flow_f_plus_h_gradsignum(flow, x1*std, gradient), demand);
+            } else {
+                // minimum not in [x0, x1]
+                // shrink to interval [x1, x3]
+                x0 = x1;
+//                y0 = y1;
+                // can reuse point x2 as new x1 (golden section)
+                x1 = x2;
+                y1 = y2;
+                // update interval size
+                h = x3 - x0;
+                // update point x2
+                x2 = x1 + inv_gs * h;
+                y2 = potential(flow_f_plus_h_gradsignum(flow, x2*std, gradient), demand);
+            }
+        }
+        
+        return y1 < y2 ? x1 : x2;
+    }
+    GridFlow flow_f_plus_h_gradsignum(GridFlow flow, double h, GridFlow gradient){
+        GridFlow cflow = new GridFlow(flow, true);
+        for(Entry<Integer, Double> e : gradient.entries.entrySet()){
+            // capacity is 1 for all edges here
+//                    double val = -(delta/(1+4*t.getAlpha()*t.getAlpha()))*e.getValue();
+            cflow.add(e.getKey(), h * Math.signum(e.getValue()));
+        }
+        return cflow;
+    }
+    
+    public GridFlow CompleteRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
         t.alpha = alpha;
         stepSize = h;
         return CompleteRoute(b, eps);
     }
-    public HashedGridFlow CompleteRoute(GridDemand b, double eps){
+    public GridFlow CompleteRoute(GridDemand b, double eps){
         // first route: AlmostRoute
-        Tuple<HashedGridFlow, HashedGridFlow> f0_ = AlmostRoute(b, eps);
+        Tuple<GridFlow, GridFlow> f0_ = AlmostRoute(b, eps);
         int m = g.getM();
-        int T = (int)Math.log(2*m);
+        //eventually add 1, as neither this thesis nor [She13] state whether to floor or ceil the value
+        int T = (int)(Math.log(2*m)/Math.log(2));
         GridDemand bi = b;
-        HashedGridFlow fi = f0_.a;
+        GridFlow fi = f0_.a;
+        GridFlow f_sum = fi;
         for(int i = 1; i <= T; i++){
             // consecutive routings: AlmostRoute with residual and eps=0.5
             bi = GridDemand.subtract(bi, fi.calculateExcessFlows());
-            Tuple<HashedGridFlow, HashedGridFlow> fi_ = AlmostRoute(bi, 0.5);
+            Tuple<GridFlow, GridFlow> fi_ = AlmostRoute(bi, 0.5);
             fi = fi_.a;
+            f_sum = GridFlow.add(f_sum, fi);
         }
-        //TODO: Spanning Tree routing
-        return fi;
+        //TODO: Testing
+        GridFlow treeRouteRes = GridMST.route2(g, bi);
+        return GridFlow.add(f_sum, treeRouteRes);
     }
     
     
     boolean alternateScaling = false;
     // part of the paper's "repeat" part, namely the scaling of f and b (bullet 1),
     // and the calculation of potential and potential gradient of f (to be used for other bullet points)
-    private Tuple<HashedGridFlow, HashedGridFlow> iteration(HashedGridFlow currentFlow, GridDemand demand, double eps){
+    Tuple<GridFlow, GridFlow> iteration(GridFlow currentFlow, GridDemand demand, double eps){
         double pot = potential(currentFlow, demand);
 //        System.out.println("Pot @ "+iterations+" :   "+pot);
         double locScale = 1.;
@@ -267,11 +406,11 @@ public class GridApproximation {
             demand.scale_inplace(scale);
             this.currentScale *= scale;
             locScale *= scale;
-            try {
-                fw.append(String.format("-------------------------  Scale up! scale: %f pot: %f\n",this.currentScale, pot));
-            } catch (IOException ex) {
-                Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
-            }
+//            try {
+//                fw.append(String.format("-------------------------  Scale up! scale: %f pot: %f\n",this.currentScale, pot));
+//            } catch (IOException ex) {
+//                Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+//            }
             pot = potential(currentFlow, demand);
 //            System.out.println("Scaling in iteration "+iterations);
 //            System.out.println("  Scale is now "+currentScale);
@@ -293,11 +432,11 @@ public class GridApproximation {
                 demand.scale_inplace(scale);
                 this.currentScale *= scale;
                 locScale *= scale;
-                try {
-                    fw.append(String.format("-------------------------  Scale down! scale: %f pot: %f\n",this.currentScale, pot));
-                } catch (IOException ex) {
-                    Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
-                }
+//                try {
+//                    fw.append(String.format("-------------------------  Scale down! scale: %f pot: %f\n",this.currentScale, pot));
+//                } catch (IOException ex) {
+//                    Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
+//                }
                 pot = potential(currentFlow, demand);
             }
         }
@@ -312,7 +451,7 @@ public class GridApproximation {
 //        System.out.println("     >  Local Scale: "+locScale);
 //        System.out.println("     >  Total Scale: "+currentScale);
         // GridFlow grad_pot = new GridFlow(g);
-        HashedGridFlow grad_potential = grad_potential(currentFlow, demand);
+        GridFlow grad_potential = grad_potential(currentFlow, demand);
 //        System.out.println("Current Flow: ");
 //        printFlow(currentFlow);
 //        System.out.println("Current Gradient: ");
@@ -322,7 +461,7 @@ public class GridApproximation {
         return new Tuple<>(currentFlow, grad_potential);
     }
     double cpt = 0., cpg = 0.;
-    public double potential(HashedGridFlow currentFlow, GridDemand demand){
+    public double potential(GridFlow currentFlow, GridDemand demand){
 //        System.out.println(String.format("Calculating Potential in iteration %d....",this.iterations));
 //        System.out.println("Given Flow:");
 //        printFlow(currentFlow);
@@ -346,7 +485,7 @@ public class GridApproximation {
 //        System.out.println("Scaled:  "+pot_tree/currentScale);
         return pot_graph + pot_tree;
     }
-    public HashedGridFlow grad_potential(HashedGridFlow currentFlow, GridDemand demand){
+    public GridFlow grad_potential(GridFlow currentFlow, GridDemand demand){
 //        System.out.println("Calculating Gradient in iteration "+this.iterations);
 //        System.out.println("Given Flow:");
 //        printFlow(currentFlow);
@@ -356,7 +495,7 @@ public class GridApproximation {
          * Use a respective shift for the gradient graph potential to avoid numeric error
          */
         double shift_graph = -currentFlow.linf();
-        HashedGridFlow grad_pot_graph = currentFlow.gradient_lmax_shifted(shift_graph);
+        GridFlow grad_pot_graph = currentFlow.gradient_lmax_shifted(shift_graph);
         double shift = t.getDefaultShift();
 //        System.out.println("Gradient (Graph): ");
 //        printFlow(grad_pot_graph);
@@ -371,13 +510,13 @@ public class GridApproximation {
         GridDemand rt_times_grad = t.mult_Rt_edge_gradient();
 //        System.out.println("R^T * Gradient: ");
 //        printDemand(rt_times_grad);
-        HashedGridFlow bt_rt_grad = rt_times_grad.toPotentialDiffEdgesFlow();
+        GridFlow bt_rt_grad = rt_times_grad.toPotentialDiffEdgesFlow();
 //        System.out.println("B^T * R^T * Grad: ");
 //        printFlow(bt_rt_grad);
-        HashedGridFlow grad_pot_tree = bt_rt_grad.scale(s);
+        GridFlow grad_pot_tree = bt_rt_grad.scale(s);
 //        System.out.println("Gradient (Tree) (-2 alpha / sum(exp(2 alpha R (b - Bf)))) * B^T * R^T * Grad:");
 //        printFlow(grad_pot_tree);
-        HashedGridFlow grad_pot = HashedGridFlow.add(grad_pot_graph, grad_pot_tree);
+        GridFlow grad_pot = GridFlow.add(grad_pot_graph, grad_pot_tree);
 //        System.out.println("Total Gradient:");
 //        printFlow(grad_pot);
 //        if(iterations == 1){
@@ -397,7 +536,7 @@ public class GridApproximation {
         return grad_pot;
     }
     
-    void printFlow(HashedGridFlow f){
+    void printFlow(GridFlow f){
         if(printToString) System.out.println(f);
         if(printTikz) {
             printTikzPre();
@@ -424,7 +563,7 @@ public class GridApproximation {
     
     
     
-    public Tuple<HashedGridFlow, HashedGridFlow> debugAlmostRoute(GridDemand b, double eps){
+    public Tuple<GridFlow, GridFlow> debugAlmostRoute(GridDemand b, double eps){
         System.out.println(">>>>>>>>>> START <<<<<<<<<<<<");
         printPreamble();
         System.out.println("\\begin{document}");
@@ -434,8 +573,8 @@ public class GridApproximation {
         double s = ((16/eps)*Math.log(g.getN()))/(2*t.getAlpha()*linf);
         b = b.scale(s);
         currentScale = s;
-        HashedGridFlow currentFlow = new HashedGridFlow(g);
-        Tuple<HashedGridFlow, HashedGridFlow> iter_result;
+        GridFlow currentFlow = new GridFlow(g);
+        Tuple<GridFlow, GridFlow> iter_result;
         double delta = 0.;
         // iteration
         do{
@@ -474,7 +613,7 @@ public class GridApproximation {
         System.out.println(">>>>>>>>>>>> END <<<<<<<<<<<<");
         return iter_result;
     }
-    private Tuple<HashedGridFlow, HashedGridFlow> debugiteration(HashedGridFlow currentFlow, GridDemand demand, double eps){
+    private Tuple<GridFlow, GridFlow> debugiteration(GridFlow currentFlow, GridDemand demand, double eps){
         System.out.println(String.format("\\subsection{Calculation of Potential with $\\epsilon=%f$}",eps));
         System.out.println(String.format("\\subsubsection{Given Flow}"));
         printFlow(currentFlow);
@@ -494,7 +633,7 @@ public class GridApproximation {
         System.out.println(String.format("\\subsubsection{Scaled Demand with $s=%f$}", currentScale));
         System.out.println(String.format("Potential after scaling with $s=%f$: %f", currentScale, pot));
         // GridFlow grad_pot = new GridFlow(g);
-        HashedGridFlow grad_potential = debuggrad_potential(currentFlow, demand);
+        GridFlow grad_potential = debuggrad_potential(currentFlow, demand);
 //        System.out.println("Current Flow: ");
 //        printFlow(currentFlow);
 //        System.out.println("Current Gradient: ");
@@ -503,7 +642,7 @@ public class GridApproximation {
         
         return new Tuple<>(currentFlow, grad_potential);
     }
-    public double debugpotential(HashedGridFlow currentFlow, GridDemand demand, boolean print){
+    public double debugpotential(GridFlow currentFlow, GridDemand demand, boolean print){
         if(print){
             System.out.println(String.format("Calculating Potential in iteration %d with scale %f....",this.iterations, this.currentScale));
             System.out.println("Given Flow:");
@@ -533,13 +672,13 @@ public class GridApproximation {
         }
         return pot_graph + pot_tree;
     }
-    public HashedGridFlow debuggrad_potential(HashedGridFlow currentFlow, GridDemand demand){
+    public GridFlow debuggrad_potential(GridFlow currentFlow, GridDemand demand){
         System.out.println(String.format("\\subsection{Calculating Gradient in iteration %d}",this.iterations));
         System.out.println("\\subsubsection{Given Flow}");
         printFlow(currentFlow);
         System.out.println("\\subsubsection{Given Demand}");
         printDemand(demand);
-        HashedGridFlow grad_pot_graph = currentFlow.gradient_lmax_shifted();
+        GridFlow grad_pot_graph = currentFlow.gradient_lmax_shifted();
         System.out.println("\\subsubsection{Gradient (Graph)}");
         printFlow(grad_pot_graph);
 //        if(printToString) System.out.println(grad_pot_graph);
@@ -553,13 +692,13 @@ public class GridApproximation {
         GridDemand rt_times_grad = t.mult_Rt_edge_gradient();
         System.out.println("\\subsubsection{$R^T\\cdot \\nabla \\text{lmax}$}");
         printDemand(rt_times_grad);
-        HashedGridFlow bt_rt_grad = rt_times_grad.toPotentialDiffEdgesFlow();
+        GridFlow bt_rt_grad = rt_times_grad.toPotentialDiffEdgesFlow();
         System.out.println("\\subsubsection{$B^T \\cdot R^T\\cdot \\nabla \\text{lmax}$}");
         printFlow(bt_rt_grad);
-        HashedGridFlow grad_pot_tree = bt_rt_grad.scale(s);
+        GridFlow grad_pot_tree = bt_rt_grad.scale(s);
         System.out.println("\\subsubsection{Gradient (Tree) $-2\\alpha\\cdot \\frac{1}{\\sum_i e^{(2\\alpha\\cdot R(b-Bf))_i}+e^{(-2\\alpha\\cdot R(b-Bf))_i}} \\cdot B^T \\cdot R^T\\cdot \\nabla \\text{lmax}$}");
         printFlow(grad_pot_tree);
-        HashedGridFlow grad_pot = HashedGridFlow.add(grad_pot_graph, grad_pot_tree);
+        GridFlow grad_pot = GridFlow.add(grad_pot_graph, grad_pot_tree);
         System.out.println("\\subsubsection{Total Gradient}");
         printFlow(grad_pot);
         return grad_pot;

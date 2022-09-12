@@ -249,6 +249,16 @@ public class GridGraph /*implements RoutingGraph*/ {
         }
         return pos;
     }
+    public int[] toPositionV2(int index){
+        int[] pos = new int[nodesPerDim.length];
+        for(int j = nodesPerDim.length - 1; j >= 0; j--){
+            int current_div = nodesPerDim[j];
+            //pos[j] = index - (index / current_div)*current_div;
+            pos[j] = index % current_div;
+            index = (index - pos[j]) / current_div;
+        }
+        return pos;
+    }
     
     public boolean inbound(int[][] bounds){
         for(int i = 0; i < nodesPerDim.length; i++){

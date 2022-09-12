@@ -214,7 +214,9 @@ public class GridApproximatorTree {
          * - g_i is the gradient for node i
          * - I_i is the incidence vector for node i (i.e., (1,0,0,1) iff graph nodes 1 and 4 are in this box)
          * @param d demand vector to store results in
+         * @deprecated Capacity bug. Use fixed version v2 instead.
          */
+        @Deprecated
         public void add_edge_gradients_to_incident_node_excesses(GridDemand d){
             if(!isRoot()){
                 int[] indices = T.g.indicesOfBoxNodes(lowerIndices, higherIndices);
@@ -278,6 +280,7 @@ public class GridApproximatorTree {
             }
             return max;
         }
+        @Deprecated
         double org_demand;
         @Deprecated
         /**
@@ -293,6 +296,7 @@ public class GridApproximatorTree {
             }
             return sum;
         }
+        @Deprecated
         /**
          * Debug Purpose.
          * @param b 
@@ -399,6 +403,11 @@ public class GridApproximatorTree {
         return (1+eps)*lemma_congestion;
     }
     
+    /**
+     * Calculates ||Rb||_inf for the current excess flow b.
+     * Use updateExcessFlows(b) to set b.
+     * @return ||Rb||_inf.
+     */
     public double linf_congestion(){
         return root.linf_congestion();
     }

@@ -31,7 +31,7 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         entries = new double[g.getN()];
         entryIndices = new HashSet<>();
     }
-    public GridDemand(HashedGridFlow f){
+    public GridDemand(GridFlow f){
         this.g = f.g;
         //entries = new ArrayList<>(n);
         entries = new double[g.getN()];
@@ -52,6 +52,9 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         //entries.set(((int)at), value);
         entries[(int)at] = value;
         entryIndices.add(at);
+    }
+    public void set(int[] at_index, Double value){
+        set((int)GridGraph.toIndex(at_index, g.nodesPerDim), value);
     }
     public void add(Integer at, Double value){
         if(entryIndices.contains(at)){
@@ -171,6 +174,8 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
         return sum;
     }
     
+//    @OverrideS
+    
 //    @Deprecated
 //    public GridFlow toPotentialDiffEdgesFlow(){
 //        GridFlow f = new GridFlow(g);
@@ -184,8 +189,8 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
 //        }
 //        return f;
 //    }
-    public HashedGridFlow toPotentialDiffEdgesFlow(){
-        HashedGridFlow f = new HashedGridFlow(g);
+    public GridFlow toPotentialDiffEdgesFlow(){
+        GridFlow f = new GridFlow(g);
         for(int i = 0; i < g.getN(); i++){
             int[][] neighbours = g.getNeighbours(g.toPosition(i));
             for(int k = 0; k < neighbours.length; k++){
