@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package grid_algorithm;
 
 import java.util.HashMap;
@@ -14,7 +9,7 @@ import project_utils.Tuple;
 
 /**
  *
- * @author kroka
+ * @author Jonas Schulz
  */
 @Deprecated
 public class OldGridFlow implements Iterable<Triple<Integer,Integer,Double>>{
