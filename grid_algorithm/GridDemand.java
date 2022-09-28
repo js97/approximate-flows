@@ -81,9 +81,9 @@ public class GridDemand implements Iterable<Tuple<Integer, Double>> {
     }
     /**
      * Sets the entry of b at index <code>at_index</code> to <code>value</code>.
-     * Equivalent to <code>b.set(b.g.toIndex(at_index), value);
+     * Equivalent to <code>b.set(b.g.toIndex(at_index), value);</code>
      * @param at_index Index in vector coordinates.
-     * @param value Value that b<sub><code>at</code><sub> should be set to.
+     * @param value Value that b<sub><code>at</code></sub> should be set to.
      */
     public void set(int[] at_index, Double value){
         set((int)GridGraph.toIndex(at_index, g.nodesPerDim), value);
