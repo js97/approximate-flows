@@ -1,0 +1,110 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\babel@toc {british}{}
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {1}{\ignorespaces A plot of the $lmax\left (\vec {x}\right )$ function for a two-dimensional input vector $\vec {x}=\left (x_1,x_2\right )^T$. $\qopname \relax m{max}(x_1,x_2)$ has a downward pyramid shape, as also hinted in this figure.\relax }}{6}{figure.caption.2}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {2}{\ignorespaces Two-dimensional $4\times 4$ Grid Graph. All edges are undirected and have unit capacity $1$. The numbers in the nodes correspond to their index, which is the output of the bijective enumeration function $\texttt {index}:\mathbb {N}_0^d\rightarrow \mathbb {N}_0$.\relax }}{17}{figure.caption.3}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {3}{\ignorespaces Example flow with divergence for our example grid graph. Edges are directed from lower to higher index. Flow from higher index to lower index node is represented with negative flow along the reversed edge. This chart represents a flow from 1 to 5 with value $0.5$ and a flow from 9 to 5 with value $0.5$. The divergence is $d(u)=-0.5$ for vertices 1 and 9, $d(5)=+1$ and $0$ for all other vertices.\relax }}{17}{figure.caption.4}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {4}{\ignorespaces Example grid demand for our example grid graph. Since ``demand`` refers to the demanded divergence, the actual divergence and the demand share this representation. This figure shows a visualization of the implemented data structure (actually code-generated TikZ-input), which does not store information about neighbourhood of vertices; hence, the edges aren't visualized here.\relax }}{18}{figure.caption.5}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {5}{\ignorespaces Schematic view of the approximator. Each node of the approximator tree represents a subdivision: the root represents the graph itself, the leaves represent a single vertex in the original grid graph. The capacity assigned to a tree edge is the capacity of the cut of the child tree node's represented subdivision.\relax }}{20}{figure.caption.6}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {6}{\ignorespaces The congestion approximator $R$, together with edge labels representing $R\cdot b$ and the gradient $\nabla lmax(2\alpha \cdot R\cdot b)$ for the example demand vector $b$ from figure \ref {ex_demand}. The scaling in $\nabla lmax$ by $1/\left (\DOTSB \sum@ \slimits@ _i e^{x_i}+e^{-x_i}\right )$ is postponed to the calculation of $-2\alpha \cdot B^T\cdot R^T\cdot \nabla lmax$ for more runtime efficiency, as the linear operations allow us to do so.\relax }}{24}{figure.caption.7}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {7}{\ignorespaces The congestion approximator $R$, together with edge labels representing $R\cdot b$ and the \textit {shifted} gradient $\nabla lmax(2\alpha \cdot R\cdot b-s\cdot \mathbbm {1})$ for the example demand vector $b$ from figure \ref {ex_demand}, where $s$ is the maximum of the absolutes of the entries in $2\alpha \cdot R\cdot b$ and $\mathbbm {1}$ is a vector with $1$ at each entry, shifting all entries uniformly. The shifting prevents overflows resulting from latter exponentiation. With $\alpha =8$, the shift here is $2\alpha \cdot 0.7/3=3.7\overline {3}$ (from edge to the leaf 7; the bigger the difference of $s$ and $-s$, the more approximate will this edge be to $\pm 1$). Again, the scaling in $\nabla lmax$ is postponed.\relax }}{24}{figure.caption.8}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {8}{\ignorespaces A spanning tree $T$ for a $3$-dimensional grid graph $G$ with dimensions $(5,4,6)$. Each vertex can be seen as ``representative'' of itself. We can then choose the \leavevmode {\color {cyan}first dimension} and connect vertices \leavevmode {\color {cyan}$(x,y,z),(x+1,y,z)$} in $T$, as those connections are also edges of $G$. Then, we choose point \leavevmode {\color {blue}$(0,y,z)$} on each \leavevmode {\color {cyan}line} additionally as representative for its \leavevmode {\color {cyan}line} and connect all \leavevmode {\color {blue}$(0,y,z),(0,y+1,z)$} for the \leavevmode {\color {blue}second dimension}. The \leavevmode {\color {violet}third dimension} then chooses the vertices \leavevmode {\color {violet}$(0,0,z)$} as representatives for those \leavevmode {\color {blue}planes} and connects vertices \leavevmode {\color {violet}$(0,0,z),(0,0,z+1)$}. The point \leavevmode {\color {red}$(0,0,0)$} could be seen as representative for the whole cuboid. This strategy can be extended to arbitrary dimensions. Edges of $G$ that are not part of $T$ are \leavevmode {\color {gray!70}greyed out}.\relax }}{27}{figure.caption.9}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {9}{\ignorespaces UML Chart for the Grid Graph class. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} function. \underline {Constructors} are underlined.\relax }}{31}{figure.caption.10}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {10}{\ignorespaces UML Chart for the Grid Flow class. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} function. \underline {Constructors} are underlined.\relax }}{33}{figure.caption.11}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {11}{\ignorespaces UML Chart for the Grid Demand class. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} function. \underline {Constructors} are underlined.\relax }}{35}{figure.caption.12}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {12}{\ignorespaces UML Chart for the Grid Approximator Tree class. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} function, \leavevmode {\color {Purple}$ ^S$: Delegates to inner class}. \underline {Constructors} are underlined.\relax }}{37}{figure.caption.13}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {13}{\ignorespaces UML Chart for the inner class Node of the Grid Approximator Tree. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} function, \leavevmode {\color {Purple}$ ^S$: Implements outer class functionality}. \underline {Constructors} are underlined.\relax }}{40}{figure.caption.14}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {14}{\ignorespaces UML Chart for the Grid Approximation class. \leavevmode {\color {blue}$ ^H$: Helper} function, \leavevmode {\color {Green}$ ^D$: Debug} field/function, \leavevmode {\color {Purple}$ ^P$: Parametrization} field/parametrized version of another function. \underline {Constructors} are underlined. For better readability, function names are in \textbf {bold font}.\relax }}{41}{figure.caption.15}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {15}{\ignorespaces UML Chart for the Grid Maximal Spanning Tree class. \leavevmode {\color {blue}$ ^H$: Helper} function. \underline {Constructors} are underlined.\relax }}{42}{figure.caption.16}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {16}{\ignorespaces Examples for $g_f(h)$. \relax }}{45}{figure.caption.17}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {$g_f(h)$ for Example 1.}}}{45}{figure.caption.17}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {$g_f(h)$ for Example 2.}}}{45}{figure.caption.17}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(c)}{\ignorespaces {$g_f(h)$ for Example 3.}}}{45}{figure.caption.17}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {17}{\ignorespaces $g_f(h)$ for Example 3, split into $\phi =\phi _G+\phi _T$.\relax }}{46}{figure.caption.18}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {18}{\ignorespaces Refinements of $g_f(h)$ for Example 3, showing more detailed regions around the minimum.\relax }}{47}{figure.caption.19}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {$g_f(h)$ for Example 3, refined.}}}{47}{figure.caption.19}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {$g_f(h)$ for Example 3, further refined.}}}{47}{figure.caption.19}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {19}{\ignorespaces Visualization of the cases during line search. The function is assumed to have a local minimum between the two border points, for which the function strictly monotonically decreases before and strictly monotonically increases after this minimum (strict monotonicity assumption).\relax }}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {3 Points, conclusive}}}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {3 Points, inconclusive}}}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(c)}{\ignorespaces {4 Points, minimum at border}}}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(d)}{\ignorespaces {4 Points, minimum at center}}}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(e)}{\ignorespaces {Conclusion from strict monotonicity assumption}}}{50}{figure.caption.20}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {20}{\ignorespaces Number of iterations for $b_1$ and $\varepsilon =0.01$, w.r.t. $\alpha $ and $s$.\relax }}{57}{figure.caption.21}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {21}{\ignorespaces Number of iterations for $b_1$ and $\varepsilon =0.1$, w.r.t. $\alpha $ and $s$.\relax }}{58}{figure.caption.22}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {22}{\ignorespaces Number of iterations for $b_2$ and $\varepsilon =0.1$, w.r.t. $\alpha $ and $s$.\relax }}{58}{figure.caption.23}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {23}{\ignorespaces $\frac {b^Tv}{\Vert CB^Tv\Vert _1}$ and $(1+\varepsilon )\frac {b^Tv}{\Vert CB^Tv\Vert _1}$ for potentials $v$ after termination of $\texttt {AlmostRoute}(b_1,0.1)$. The optimal solution is $1$ and has to lie between both values.\relax }}{59}{figure.caption.24}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {$\frac {b^Tv}{\Vert CB^Tv\Vert _1}$.}}}{59}{figure.caption.24}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {$(1+\varepsilon )\frac {b^Tv}{\Vert CB^Tv\Vert _1}$.}}}{59}{figure.caption.24}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {24}{\ignorespaces $\frac {b^Tv}{\Vert CB^Tv\Vert _1}$ and $(1+\varepsilon )\frac {b^Tv}{\Vert CB^Tv\Vert _1}$ for potentials $v$ after termination of $\texttt {AlmostRoute}(b_1,0.01)$. The optimal solution is $1$ and has to lie between both values. Note that the results from runs that took $500,000$ iterations should be ignored here, as the iteration was prematurely terminated. See Figure \ref {res_iter001d1} for iterations.\relax }}{60}{figure.caption.25}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {$\frac {b^Tv}{\Vert CB^Tv\Vert _1}$.}}}{60}{figure.caption.25}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {$(1+\varepsilon )\frac {b^Tv}{\Vert CB^Tv\Vert _1}$.}}}{60}{figure.caption.25}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {25}{\ignorespaces Comparison of iterations and runtimes between naive steepest descent and golden section search optimization for $b_1$ and $\varepsilon =0.01$.\relax }}{61}{figure.caption.26}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {Comparison of iterations.}}}{61}{figure.caption.26}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {Comparisons of runtimes.}}}{61}{figure.caption.26}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {26}{\ignorespaces Comparison of iterations and runtimes between naive steepest descent and golden section search optimization for $b_1$ and $\varepsilon =0.1$.\relax }}{61}{figure.caption.27}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {Comparison of iterations.}}}{61}{figure.caption.27}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {Comparisons of runtimes.}}}{61}{figure.caption.27}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {27}{\ignorespaces Comparison of iterations and runtimes between naive steepest descent and golden section search optimization for $b_2$ and $\varepsilon =0.01$.\relax }}{62}{figure.caption.28}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(a)}{\ignorespaces {Comparison of iterations.}}}{62}{figure.caption.28}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subfigure}{\numberline {(b)}{\ignorespaces {Comparisons of runtimes.}}}{62}{figure.caption.28}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {28}{\ignorespaces Results of Random Sampling for $d=1$. Each data point corresponds to the result of \leavevmode {\color {RedOrange}1} / \leavevmode {\color {MidnightBlue}25} / \leavevmode {\color {OliveGreen}50} million samples.\relax }}{63}{figure.caption.29}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {29}{\ignorespaces Results of Random Sampling for $d=1$ and $n=4$ with $50\cdot 1000$ samples. Each data point corresponds to the result of $\frac {\text {opt}(b)}{\Vert Rb\Vert _\infty }$ for one sampled $b$. The results of the unrestrictedly generated samples with $\varsigma =1$ are marked.\relax }}{63}{figure.caption.30}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {30}{\ignorespaces Results of Random Sampling for $d=1$ and $n=8$ with $50\cdot 1000$ samples. Each data point corresponds to the result of $\frac {\text {opt}(b)}{\Vert Rb\Vert _\infty }$ for one sampled $b$. The results of the unrestrictedly generated samples with $\varsigma =1$ are marked.\relax }}{63}{figure.caption.31}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {31}{\ignorespaces Results of Random Sampling for $d=1$ and $n=16$ with $50\cdot 1000$ samples. Each data point corresponds to the result of $\frac {\text {opt}(b)}{\Vert Rb\Vert _\infty }$ for one sampled $b$. The results of the unrestrictedly generated samples with $\varsigma =1$ are marked.\relax }}{64}{figure.caption.32}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {32}{\ignorespaces Results of Random Sampling for $d=1$ and $n=32$ with $50\cdot 1000$ samples. Each data point corresponds to the result of $\frac {\text {opt}(b)}{\Vert Rb\Vert _\infty }$ for one sampled $b$. The results of the unrestrictedly generated samples with $\varsigma =1$ are marked.\relax }}{64}{figure.caption.33}%
+\defcounter {refsection}{0}\relax 
+\contentsline {figure}{\numberline {33}{\ignorespaces Results of Random Sampling for $d=1$ and $n=64$ with $50\cdot 1000$ samples. Each data point corresponds to the result of $\frac {\text {opt}(b)}{\Vert Rb\Vert _\infty }$ for one sampled $b$. The results of the unrestrictedly generated samples with $\varsigma =1$ are marked.\relax }}{64}{figure.caption.34}%
+\defcounter {refsection}{0}\relax 
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 
