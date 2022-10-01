@@ -1,20 +1,44 @@
 package project_utils;
 
 /**
- *
+ * Interface for double sequences (e.g., <i>(1,2,3,4,2,3,4,5,3,4,5,6,...)</i>).
  * @author Jonas Schulz
  */
 public interface DoubleSequence {
+    /**
+     * Defines the double of the sequence at the specified index.
+     * @param index Parameter for the index in the sequence.
+     * @return Value of the sequence at <code>index</code>.
+     */
     public double at(int index);
     
+    /**
+     * Sequence of 1s. (<i>1,1,1,1,1,...</i>)
+     */
     public static DoubleSequence one = (int index) -> 1.;
+    
+    /**
+     * Hyperbole sequence <i>a<sub>i</sub> = (i + s) / (i + 1).
+     * @param start <i>s</i>.
+     * @return The hyperbole sequence with parameter <i>s</i>.
+     */
     public static DoubleSequence hyberbole(double start){
         return ((int index) -> (index+start)/(index+1));
     }
+    
+    /**
+     * Constant sequence. (<i>c,c,c,c,c,...</i>)
+     * @param c The constant.
+     * @return The constant sequence.
+     */
     public static DoubleSequence constant(double c){
         return ((int index) -> c);
     }
     
+    /**
+     * Small example of the use of this class.
+     * @param args Program parameters. Currently, none is used.
+     */
     public static void main(String[] args){
         DoubleSequence hseq = new DoubleSequence(){
                         public double at(int index){
