@@ -12,20 +12,58 @@ import project_utils.DoubleSequence;
 import project_utils.Tuple;
 
 /**
- *
- * @author kroka
+ * This class implements the algorithmic functionalities of the algorithm from
+ * [She13], our further adjustments, and some debug functionalities.
+ * @author Jonas Schulz
  */
 public class GridApproximation {
+    /**
+     * Grid graph to operate on.
+     */
     GridGraph g;
+    /**
+     * Approximator for the grid graph {@link #g}.
+     */
     GridApproximatorTree t;
+    /**
+     * The current scale of the demand and flow.
+     */
     double currentScale = 1.;
-    
+    /**
+     * Step size to be used, depending on the iteration.
+     * The {@link DoubleSequence} interface offers a simple possibility for dynamic
+     * step sizes; its function is the implementation of some map from integers
+     * (i.e. the domain of iteration counts) to doubles (i.e. the step size).
+     */
     DoubleSequence stepSize = DoubleSequence.one;
-    
+    /**
+     * Flag to (de-)activate the primitive {@link #loopDetector}.
+     */
     boolean activateLoopDetector = false;
-            
+    /**
+     * Primitive loop detector for debug purpose.
+     * It will store 16 values to be checked for a loop.
+     * For use as a ring buffer, we additionally introduce the pointer {@link #loopIndex}.
+     */
     double[] loopDetector = new double[16];
+    /**
+     * The current index of the ring buffer {@link #loopDetector}.
+     */
     int loopIndex = 0;
+    /**
+     * Feedback from the loop detector. <code>true</code> iff a detected loop has been registered
+     * during {@link #loopCheck(double)}.
+     */
+    boolean loopDetected = false;
+    
+    /**
+     * Uses the primitive loop detector iff {@link #activateLoopDetector} is <code>true</code>.
+     * For this, the ring buffer given by {@link #loopDetector} and {@link #loopIndex} is used.
+     * If there were more than 16 iterations and some value in the buffer has been repeated,
+     * {@link #loopDetected} is set to <code>true</code> and the size of the detected loop is printed on the standard output stream, {@link System#out}.
+     * @param value The value to be added into the ring buffer.
+     * @return <code>true</code> iff a loop has been detected.
+     */
     boolean loopCheck(double value){
         if(!activateLoopDetector) return false;
         for(int i = 0; i < 16; i++){
@@ -42,33 +80,46 @@ public class GridApproximation {
         loopIndex &= 15;
         return false;
     }
-    boolean loopDetected = false;
     
+    /**
+     * Path to the folder where debug information should be printed in.
+     */
+    String path = "./Logs/";
+    
+    /**
+     * Standard constructor.
+     * @param g The grid graph to operate on.
+     */
     public GridApproximation(GridGraph g){
-        // debug stuff
+        // <editor-fold defaultstate="collapsed" desc="CSV Debug Initialization">
         debug_csv : {
             String subfolder = "";
-            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
+//            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
             try {
                 this.writer = new CSVWriter(new FileWriter(path + subfolder + "deltas.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
                 writer.writeNext(new String[]{"delta"});
                 this.iterationWriter = new CSVWriter(new FileWriter(path + subfolder + "potentials.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
-                // <editor-fold defaultstate="collapsed" desc="Some code">
                 iterationWriter.writeNext(new String[]{"potential", "current scale", String.format("edgeflow-%d-%d",4,8), "edgeflow-rescaled"});
-                // </editor-fold>
-            } catch (IOException ex) {
+                } catch (IOException ex) {
                 Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        // </editor-fold>
         this.g = g;
         this.t = new GridApproximatorTree(g);
     }
     
+    /**
+     * Constructor with debug purpose.
+     * @param g The grid graph to operate on.
+     * @param input_identifier A {@link String} containing information unique for the given input. It will be 
+     * part of the output file's name, and equal input identifiers will lead to the output files being overwritten.
+     */
     public GridApproximation(GridGraph g, String input_identifier){
-        // debug stuff
+        // <editor-fold defaultstate="collapsed" desc="CSV Debug Initialization">
         debug_csv : {
             String subfolder = "";
-            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
+//            String path = "C:/Users/kroka/Documents/Masterarbeit/Logs/";
             try {
                 this.writer = new CSVWriter(new FileWriter(path + subfolder + input_identifier + "_deltas.csv"), CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
                 writer.writeNext(new String[]{"delta"});
@@ -79,29 +130,75 @@ public class GridApproximation {
                 Logger.getLogger(GridApproximation.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        // </editor-fold>
         this.g = g;
         this.t = new GridApproximatorTree(g);
     }
     
+    /**
+     * Flag for activating any TikZ output.
+     */
     boolean printTikz = true;
+    /**
+     * Flag for activating any data structure string representation output.
+     */
     boolean printToString = false;
+    /**
+     * Limit for the iterations. The program will terminate after this number of iterations,
+     * regardless of whether a satisfying solution has been found.
+     */
     int iterationLimit = 1_000_000;
     // debug purpose
+    /**
+     * Writer for debug purpose.
+     */
     CSVWriter writer, iterationWriter;
+    /**
+     * Writer for debug purpose.
+     */
     FileWriter fw;
+    /**
+     * Flag for writing to {@link #fw}.
+     * @deprecated Old debug feature. Currently not used.
+     */
+    @Deprecated
     boolean writeToFile = false;
     
+    /**
+     * Same as {@link #AlmostRoute(GridDemand, double)}, but with additional inputs for <code>alpha</code> and <code>h</code>.
+     * @param b The demand to be routed.
+     * @param eps The relative precision &epsilon;.
+     * @param alpha Alpha parameter for the &alpha;-approximator {@link #t}.
+     * @param h Simple dynamic map from iterations to step sizes.
+     * @return 
+     */
     public Tuple<GridFlow, GridFlow> AlmostRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
         t.alpha = alpha;
         stepSize = h;
         return AlmostRoute(b, eps);
     }
     
-    // dynamic search for optimal scaling
+    /**
+     * (De-)activates the dynamic step size optimization with line search.
+     */
     boolean dynamic_opt_stepsize = true;
+    /**
+     * Sets the relative precision of the dynamic step size optimization.
+     */
     double dynamic_opt_stepsize_precision = 0.001;
-    // just to record how many iterations have been made
+    /**
+     * Current iteration level.
+     */
     int iterations = 0;
+    
+    /**
+     * Routes most part of b with relative precision &epsilon;.
+     * The algorithm terminates prematurely if the iteration limit is reached, or
+     * the loop detector is activated and detects a loop.
+     * @param b The demand to be routed.
+     * @param eps The relative precision &epsilon;.
+     * @return A tuple of flow <i>f</i> and the gradient <i>&nabla;&phi;(f)</i>.
+     */
     public Tuple<GridFlow, GridFlow> AlmostRoute(GridDemand b, double eps){
         // initialization
         t.updateExcessFlows(b);
@@ -220,7 +317,26 @@ public class GridApproximation {
         
         return iter_result;
     }
+    
+    /**
+     * Switches between golden section search (<code>true></code>) and ternary search
+     * (<code>false</code>) in the dynamic step size optimization line search.
+     */
     boolean golden_section_search = true;
+    
+    /**
+     * Performs a line search to find the step size with the steepest gradient descent.
+     * This method first determines the search interval, and then calls either
+     * the golden section search ({@link #optimize_stepsize_gss(GridFlow, GridFlow, double, GridDemand, double, double, double)})
+     * or the ternary search ({@link #optimize_stepsize_p4(GridFlow, GridFlow, double, GridDemand, double, double, double)}),
+     * depending on the {@link #golden_section_search} flag.
+     * @param flow Current flow.
+     * @param gradient Current gradient.
+     * @param std Standard step size.
+     * @param demand Demanded excess flows.
+     * @param precision Relative precision of the line search.
+     * @return The factor to multiply the standard step size with to obtain the optimum suggested by the line search.
+     */
     double optimize_stepsize(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision){
         double grow = 2.;
         // Initial search for interval with exponential grow
@@ -255,6 +371,17 @@ public class GridApproximation {
         return approx_min;
     }
     
+    /**
+     * Implements the ternary search.
+     * @param flow Current flow.
+     * @param gradient Current gradient.
+     * @param std Standard step size.
+     * @param demand Demanded excess flows.
+     * @param precision Relative precision of the line search.
+     * @param a Lower bound of the search interval.
+     * @param b Higher bound of the search interval.
+     * @return The factor to multiply the standard step size with to obtain the optimum suggested by the line search.
+     */
     double optimize_stepsize_p4(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision, double a, double b/*, double ya, double yb*/){
         // Refined minimum search by subsequent interval trisection
         double fi0 = a;
@@ -289,6 +416,18 @@ public class GridApproximation {
         }
         return poti1 < poti2 ? fi1 : fi2;
     }
+    
+    /**
+     * Implements the golden section search.
+     * @param flow Current flow.
+     * @param gradient Current gradient.
+     * @param std Standard step size.
+     * @param demand Demanded excess flows.
+     * @param precision Relative precision of the line search.
+     * @param a Lower bound of the search interval.
+     * @param b Higher bound of the search interval.
+     * @return The factor to multiply the standard step size with to obtain the optimum suggested by the line search.
+     */
     double optimize_stepsize_gss(GridFlow flow, GridFlow gradient, double std, GridDemand demand, double precision, double a, double b/*, double ya, double yb*/){
         double h = b - a;
         double sq5 = Math.sqrt(5);
@@ -340,6 +479,14 @@ public class GridApproximation {
         
         return y1 < y2 ? x1 : x2;
     }
+    
+    /**
+     * Helper function to calculate the value of <i>f<sub>e</sub> + h &#8729; sgn(&nabla;&phi;<sub>e</sub>)</i> for all edges <i>e</i>.
+     * @param flow <i>f</i>, the flow.
+     * @param h <i>h</i>, the step size.
+     * @param gradient <i>&nabla;&phi;</i>, the potential gradient.
+     * @return The flow with values <i>f<sub>e</sub> + h &#8729; sgn(&nabla;&phi;<sub>e</sub>)</i> at edges <i>e</i>.
+     */
     GridFlow flow_f_plus_h_gradsignum(GridFlow flow, double h, GridFlow gradient){
         GridFlow cflow = new GridFlow(flow, true);
         for(Entry<Integer, Double> e : gradient.entries.entrySet()){
@@ -350,11 +497,25 @@ public class GridApproximation {
         return cflow;
     }
     
+    /**
+     * Same as {@link #CompleteRoute(GridDemand, double)}, but with additional parameters for &alpha; and the step size.
+     * @param b The demand to be routed.
+     * @param eps The relative precision &epsilon;.
+     * @param alpha Alpha parameter for the &alpha;-approximator {@link #t}.
+     * @param h Simple dynamic map from iterations to step sizes.
+     * @return Flow that completely routes <code>b</code>, optimal within relative precision &epsilon;.
+     */
     public GridFlow CompleteRoute_inputs(GridDemand b, double eps, double alpha, DoubleSequence h){
         t.alpha = alpha;
         stepSize = h;
         return CompleteRoute(b, eps);
     }
+    /**
+     * Completely route a demand through a grid graph, with the approximative algorithm described in [She13].
+     * @param b The demand to be routed.
+     * @param eps The relative precision &epsilon;.
+     * @return Flow that completely routes <code>b</code>, optimal within relative precision &epsilon;.
+     */
     public GridFlow CompleteRoute(GridDemand b, double eps){
         // first route: AlmostRoute
         Tuple<GridFlow, GridFlow> f0_ = AlmostRoute(b, eps);
@@ -376,8 +537,18 @@ public class GridApproximation {
         return GridFlow.add(f_sum, treeRouteRes);
     }
     
-    
+    /**
+     * Alternate the scaling for test purposes.
+     */
     boolean alternateScaling = false;
+    /**
+     * Main part of the iteration workload.
+     * Performs the scaling and calculates the gradient.
+     * @param currentFlow The current flow.
+     * @param demand The demand to be routed.
+     * @param eps The relative precision the final solution should have.
+     * @return The scaled flow, together with the calculated gradient <i>&nabla;&phi;(f)</i>.
+     */
     // part of the paper's "repeat" part, namely the scaling of f and b (bullet 1),
     // and the calculation of potential and potential gradient of f (to be used for other bullet points)
     Tuple<GridFlow, GridFlow> iteration(GridFlow currentFlow, GridDemand demand, double eps){
@@ -455,7 +626,22 @@ public class GridApproximation {
         
         return new Tuple<>(currentFlow, grad_potential);
     }
-    double cpt = 0., cpg = 0.;
+    
+    /**
+     * Current tree potential component <i>lmax(2&alpha;R(b-Bf))</i>.
+     */
+    double cpt = 0.;
+    /**
+     * Current graph potential component <i>lmax(f)</i>.
+     */
+    double cpg = 0.;
+    
+    /**
+     * Calculates <i>&phi;(f) = lmax(f) + lmax(2&alpha;R(b-Bf))</i>.
+     * @param currentFlow <i>f</i>.
+     * @param demand <i>b</i>.
+     * @return <i>&phi;(f)</i>.
+     */
     public double potential(GridFlow currentFlow, GridDemand demand){
 //        System.out.println(String.format("Calculating Potential in iteration %d....",this.iterations));
 //        System.out.println("Given Flow:");
@@ -480,6 +666,13 @@ public class GridApproximation {
 //        System.out.println("Scaled:  "+pot_tree/currentScale);
         return pot_graph + pot_tree;
     }
+    
+    /**
+     * Calculates <i>&nabla;&phi;(f) = &nabla;lmax(f) - 2&alpha;B<sup>T</sup>R<sup>T</sup>&nabla;lmax(2&alpha;R(b-Bf))</i>.
+     * @param currentFlow <i>f</i>.
+     * @param demand <i>b</i>.
+     * @return <i>&nabla;&phi;(f)</i>.
+     */
     public GridFlow grad_potential(GridFlow currentFlow, GridDemand demand){
 //        System.out.println("Calculating Gradient in iteration "+this.iterations);
 //        System.out.println("Given Flow:");
@@ -531,6 +724,10 @@ public class GridApproximation {
         return grad_pot;
     }
     
+    /**
+     * Prints String/TikZ representations of a flow on {@link System#out}, according to the flags {@link #printToString} and {@link #printTikz}.
+     * @param f The flow to be printed.
+     */
     void printFlow(GridFlow f){
         if(printToString) System.out.println(f);
         if(printTikz) {
@@ -539,6 +736,11 @@ public class GridApproximation {
             printTikzPost();
         }
     }
+    
+    /**
+     * Prints String/TikZ representations of a demand on {@link System#out}, according to the flags {@link #printToString} and {@link #printTikz}.
+     * @param d The demand to be printed.
+     */
     void printDemand(GridDemand d){
         if(printToString) System.out.println(d);
         if(printTikz) {
@@ -547,6 +749,11 @@ public class GridApproximation {
             printTikzPost();
         }
     }
+    
+    /**
+     * Prints String/TikZ representations of an approximator tree on {@link System#out}, according to the flags {@link #printToString} and {@link #printTikz}.
+     * @param f The approximator tree to be printed.
+     */
     void printTree(GridApproximatorTree t){
         if(printToString) System.out.println(t);
         if(printTikz) {
@@ -556,8 +763,10 @@ public class GridApproximation {
         }
     }
     
-    
-    
+    /**
+     * @deprecated Old debug functionality.
+     */
+    @Deprecated
     public Tuple<GridFlow, GridFlow> debugAlmostRoute(GridDemand b, double eps){
         System.out.println(">>>>>>>>>> START <<<<<<<<<<<<");
         printPreamble();
@@ -608,6 +817,9 @@ public class GridApproximation {
         System.out.println(">>>>>>>>>>>> END <<<<<<<<<<<<");
         return iter_result;
     }
+    /**
+     * @deprecated Old debug functionality.
+     */
     private Tuple<GridFlow, GridFlow> debugiteration(GridFlow currentFlow, GridDemand demand, double eps){
         System.out.println(String.format("\\subsection{Calculation of Potential with $\\epsilon=%f$}",eps));
         System.out.println(String.format("\\subsubsection{Given Flow}"));
@@ -637,6 +849,9 @@ public class GridApproximation {
         
         return new Tuple<>(currentFlow, grad_potential);
     }
+    /**
+     * @deprecated Old debug functionality.
+     */
     public double debugpotential(GridFlow currentFlow, GridDemand demand, boolean print){
         if(print){
             System.out.println(String.format("Calculating Potential in iteration %d with scale %f....",this.iterations, this.currentScale));
@@ -667,6 +882,9 @@ public class GridApproximation {
         }
         return pot_graph + pot_tree;
     }
+    /**
+     * @deprecated Old debug functionality.
+     */
     public GridFlow debuggrad_potential(GridFlow currentFlow, GridDemand demand){
         System.out.println(String.format("\\subsection{Calculating Gradient in iteration %d}",this.iterations));
         System.out.println("\\subsubsection{Given Flow}");
@@ -698,6 +916,12 @@ public class GridApproximation {
         printFlow(grad_pot);
         return grad_pot;
     }
+    
+    /**
+     * Prints the necessary imports for LaTeX to enable the functionality
+     * of the generated TikZ-representations. You still need to begin and end
+     * the document with <code>\begin{document}</code> and <code>\end{document}</code>.
+     */
     void printPreamble(){
         System.out.println("\\documentclass[10pt,a4paper]{article}");
         System.out.println("\\usepackage[utf8]{inputenc}");
@@ -711,10 +935,16 @@ public class GridApproximation {
         System.out.println("\\usetikzlibrary{positioning}");
         System.out.println("\\author{Jonas Schulz}");
     }
+    /**
+     * Prints the Prefix for the TikZ-picture.
+     */
     void printTikzPre(){
         System.out.println("\\begin{tikzpicture}[roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm}, scale=1.2]");
         System.out.println("\\hspace{-4cm}");
     }
+    /**
+     * Prints the Suffix for the TikZ-picture.
+     */
     void printTikzPost(){
         System.out.println("\\end{tikzpicture}\\\\\\\\");
     }
